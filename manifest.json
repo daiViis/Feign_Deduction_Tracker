@@ -1,0 +1,196 @@
+{
+  "manifest_version": 1,
+  "type": "WebApp",
+  "meta": {
+    "name": "Feign Deduction Tracker",
+    "author": "daiViis - David Cit",
+    "version": "0.1.0",
+    "minimum-overwolf-version": "0.199.0.15",
+    "description": "Advanced deduction tracker for Feign.",
+    "dock_button_title": "Feign Deduction Tracker",
+    "icon": "icon.png",
+    "icon_gray": "icon_gray.png"
+  },
+  "permissions": [
+    "GameInfo",
+    "Hotkeys"
+  ],
+  "data": {
+    "game_targeting": {
+      "type": "all"
+    },
+    "start_window": "Background",
+    "windows": {
+      "Background": {
+        "file": "background.html",
+        "is_background_page": true,
+        "block_top_window_navigation": true
+      },
+      "ControllerWindow": {
+        "file": "dist/controller.html",
+        "transparent": true,
+        "resizable": false,
+        "show_in_taskbar": false,
+        "show_minimize": false,
+        "show_maximize": false,
+        "show_background_layer": false,
+        "clickthrough": false,
+        "grab_keyboard_focus": false,
+        "in_game_only": false,
+        "desktop_only": false,
+        "block_top_window_navigation": true,
+        "keep_window_location": true,
+        "allow_local_file_access": true,
+        "background_optimization": false,
+        "size": {
+          "width": 486,
+          "height": 30
+        },
+        "min_size": {
+          "width": 26,
+          "height": 22
+        },
+        "max_size": {
+          "width": 486,
+          "height": 48
+        },
+        "start_position": {
+          "left": 1460,
+          "top": 8
+        }
+      },
+      "LeftPanelWindow": {
+        "file": "dist/left.html",
+        "transparent": true,
+        "resizable": true,
+        "show_in_taskbar": false,
+        "show_minimize": false,
+        "show_maximize": false,
+        "show_background_layer": false,
+        "clickthrough": false,
+        "grab_keyboard_focus": false,
+        "in_game_only": false,
+        "desktop_only": false,
+        "block_top_window_navigation": true,
+        "keep_window_location": true,
+        "allow_local_file_access": true,
+        "background_optimization": false,
+        "size": {
+          "width": 408,
+          "height": 420
+        },
+        "min_size": {
+          "width": 340,
+          "height": 280
+        },
+        "max_size": {
+          "width": 640,
+          "height": 960
+        },
+        "start_position": {
+          "left": 8,
+          "top": 44
+        }
+      },
+      "RightPanelWindow": {
+        "file": "dist/right.html",
+        "transparent": true,
+        "resizable": true,
+        "show_in_taskbar": false,
+        "show_minimize": false,
+        "show_maximize": false,
+        "show_background_layer": false,
+        "clickthrough": false,
+        "grab_keyboard_focus": false,
+        "in_game_only": false,
+        "desktop_only": false,
+        "block_top_window_navigation": true,
+        "keep_window_location": true,
+        "allow_local_file_access": true,
+        "background_optimization": false,
+        "size": {
+          "width": 384,
+          "height": 620
+        },
+        "min_size": {
+          "width": 320,
+          "height": 320
+        },
+        "max_size": {
+          "width": 640,
+          "height": 960
+        },
+        "start_position": {
+          "left": 1528,
+          "top": 44
+        }
+      },
+      "KnownRolesWindow": {
+        "file": "dist/known.html",
+        "transparent": true,
+        "resizable": true,
+        "show_in_taskbar": false,
+        "show_minimize": false,
+        "show_maximize": false,
+        "show_background_layer": false,
+        "clickthrough": false,
+        "grab_keyboard_focus": false,
+        "in_game_only": false,
+        "desktop_only": false,
+        "block_top_window_navigation": true,
+        "keep_window_location": true,
+        "allow_local_file_access": true,
+        "background_optimization": false,
+        "size": {
+          "width": 280,
+          "height": 228
+        },
+        "min_size": {
+          "width": 96,
+          "height": 24
+        },
+        "max_size": {
+          "width": 420,
+          "height": 720
+        },
+        "start_position": {
+          "left": 8,
+          "top": 472
+        }
+      },
+      "VisitMapWindow": {
+        "file": "dist/visit.html",
+        "transparent": true,
+        "resizable": true,
+        "show_in_taskbar": false,
+        "show_minimize": false,
+        "show_maximize": false,
+        "show_background_layer": false,
+        "clickthrough": false,
+        "grab_keyboard_focus": false,
+        "in_game_only": false,
+        "desktop_only": false,
+        "block_top_window_navigation": true,
+        "keep_window_location": true,
+        "allow_local_file_access": true,
+        "background_optimization": false,
+        "size": {
+          "width": 340,
+          "height": 320
+        },
+        "min_size": {
+          "width": 280,
+          "height": 220
+        },
+        "max_size": {
+          "width": 520,
+          "height": 760
+        },
+        "start_position": {
+          "left": 8,
+          "top": 708
+        }
+      }
+    }
+  }
+}
