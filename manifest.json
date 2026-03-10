@@ -4,7 +4,7 @@
   "meta": {
     "name": "Feign Deduction Tracker",
     "author": "daiViis - David Cit",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "minimum-overwolf-version": "0.199.0.15",
     "description": "Advanced deduction tracker for Feign.",
     "dock_button_title": "Feign Deduction Tracker",
@@ -190,6 +190,33 @@
           "left": 8,
           "top": 708
         }
+      }
+    },
+    "hotkeys": {
+      "feign_toggle_overlay": {
+        "title": "Toggle Overlay",
+        "action-type": "custom",
+        "default": "Ctrl+Shift+D"
+      },
+      "feign_toggle_left_panel": {
+        "title": "Toggle Player List",
+        "action-type": "custom",
+        "default": "Ctrl+Shift+L"
+      },
+      "feign_toggle_known_roles": {
+        "title": "Toggle Known Roles",
+        "action-type": "custom",
+        "default": "Ctrl+Shift+K"
+      },
+      "feign_toggle_visit_map": {
+        "title": "Toggle Visit Map",
+        "action-type": "custom",
+        "default": "Ctrl+Shift+V"
+      },
+      "feign_toggle_right_panel": {
+        "title": "Toggle Detail",
+        "action-type": "custom",
+        "default": "Ctrl+Shift+Q"
       }
     }
   }

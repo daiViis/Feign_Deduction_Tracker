@@ -95,8 +95,89 @@
     });
   }
 
+  function toggleWindowVisibility(windowName) {
+    if (typeof overwolf === "undefined" || !overwolf.windows) return;
+
+    overwolf.windows.obtainDeclaredWindow(windowName, function (result) {
+      if (!result || result.status !== "success" || !result.window) return;
+
+      overwolf.windows.getWindowState(result.window.id, function(stateResult) {
+        if (stateResult.status === "success" && (stateResult.window_state === "normal" || stateResult.window_state === "maximized")) {
+          hideWindow(windowName);
+        } else {
+          restoreWindow(windowName);
+        }
+      });
+    });
+  }
+
+  function registerHotkeys() {
+    if (typeof overwolf === "undefined" || !overwolf.settings || !overwolf.settings.hotkeys) {
+      return;
+    }
+
+    overwolf.settings.hotkeys.onPressed.addListener(function (result) {
+      if (result.name === "feign_toggle_overlay") {
+        toggleWindowVisibility(CONTROLLER_WINDOW);
+        
+        var state = readOverlayState();
+        var panels = (state && state.panels) || {};
+        Object.keys(PANEL_WINDOWS).forEach(function(panelKey) {
+            var panelState = panels[panelKey];
+            if (!panelState || panelState.visible !== false) {
+                 toggleWindowVisibility(PANEL_WINDOWS[panelKey]);
+            }
+        });
+      } else if (result.name === "feign_toggle_left_panel") {
+        toggleWindowVisibility(PANEL_WINDOWS.left_panel);
+      } else if (result.name === "feign_toggle_known_roles") {
+        toggleWindowVisibility(PANEL_WINDOWS.known_roles);
+      } else if (result.name === "feign_toggle_visit_map") {
+        toggleWindowVisibility(PANEL_WINDOWS.visit_map);
+      } else if (result.name === "feign_toggle_right_panel") {
+        toggleWindowVisibility(PANEL_WINDOWS.right_panel);
+      }
+    });
+  }
+
+  function registerGameEvents() {
+    if (typeof overwolf === "undefined" || !overwolf.games) {
+      return;
+    }
+
+    overwolf.games.onGameInfoUpdated.addListener(function (res) {
+      if (res && res.gameInfo) {
+        if (!res.gameInfo.isRunning) {
+          // Game closed, hide the overlay instead of closing the app
+          // so it can wait for the game to relaunch.
+          hideWindow(CONTROLLER_WINDOW);
+          Object.keys(PANEL_WINDOWS).forEach(function (panelKey) {
+            hideWindow(PANEL_WINDOWS[panelKey]);
+          });
+        } else if (res.focusChanged) {
+          if (res.gameInfo.isInFocus) {
+            syncDeclaredWindows();
+          } else {
+            hideWindow(CONTROLLER_WINDOW);
+            Object.keys(PANEL_WINDOWS).forEach(function (panelKey) {
+              hideWindow(PANEL_WINDOWS[panelKey]);
+            });
+          }
+        }
+      }
+    });
+
+    overwolf.games.getRunningGameInfo(function (res) {
+      if (res && res.isRunning && res.isInFocus) {
+        syncDeclaredWindows();
+      }
+    });
+  }
+
   function init() {
     syncDeclaredWindows();
+    registerHotkeys();
+    registerGameEvents();
 
     if (
       overwolf &&

@@ -79,7 +79,8 @@ import {
   getCurrentWindowInfo,
   hideDeclaredWindow,
   isOverwolfAvailable,
-  restoreDeclaredWindow
+  restoreDeclaredWindow,
+  getMonitorsList
 } from "./overwolfWindows";
 import {
   type AbilityPlayerReference,
@@ -587,6 +588,17 @@ function PanelWindowLayout(props: {
   const state = useOverlayState();
   const panelState = state.panels[panel];
   const collapsed = allowCollapse && panelState.collapsed;
+  const [isSecondMonitor, setIsSecondMonitor] = useState(false);
+
+  useEffect(() => {
+    async function checkMonitors() {
+      const monitors = await getMonitorsList();
+      if (monitors.length > 1) {
+        setIsSecondMonitor(true);
+      }
+    }
+    void checkMonitors();
+  }, []);
 
   const handleHide = async () => {
     dispatchOverlayAction({
@@ -613,9 +625,11 @@ function PanelWindowLayout(props: {
     await syncPanelWindowState(panel, nextCollapsed);
   };
 
+  const backgroundClass = isSecondMonitor ? " is-solid-background" : "";
+
   return (
     <div className="window-shell">
-      <section className={`panel-window${collapsed ? " is-collapsed" : ""}`}>
+      <section className={`panel-window${collapsed ? " is-collapsed" : ""}${backgroundClass}`}>
         <PanelHeader
           title={title}
           onDragStart={() => void dragCurrentWindow(() => void syncPanelBounds(panel))}
@@ -626,7 +640,7 @@ function PanelWindowLayout(props: {
 
         {!collapsed ? <div className="panel-window__body">{children}</div> : null}
 
-        {!collapsed ? (
+        {!collapsed && !isSecondMonitor ? (
           <button
             type="button"
             className="panel-resizer"

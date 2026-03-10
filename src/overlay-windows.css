@@ -186,6 +186,10 @@ button:focus-visible {
   background: var(--bg-surface);
 }
 
+.panel-window.is-solid-background {
+  background: #12171e; /* Pure solid background */
+}
+
 .panel-header {
   display: flex;
   align-items: center;

@@ -176,3 +176,19 @@ async function obtainDeclaredWindow(windowName: string) {
     });
   });
 }
+
+export async function getMonitorsList(): Promise<any[]> {
+  if (!isOverwolfAvailable() || !overwolf.utils || !overwolf.utils.getMonitorsList) {
+    return [];
+  }
+
+  return new Promise((resolve) => {
+    overwolf.utils.getMonitorsList((result: any) => {
+      if (result && result.status === "success" && result.displays) {
+        resolve(result.displays);
+      } else {
+        resolve([]);
+      }
+    });
+  });
+}

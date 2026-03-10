@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { createMockMatch } from "./mockData";
+import { createMockMatch, createEmptyMatch } from "./mockData";
 import {
   getClassRoleId,
   reconcilePlayerClassWithRole
@@ -206,11 +206,11 @@ function readInitialState() {
 }
 
 function createInitialState(): OverlayState {
-  const match = createMockMatch();
+  const match = import.meta.env.DEV ? createMockMatch() : createEmptyMatch();
   return {
     match,
-    selectedPlayerId: createInitialSelection(match),
-    selectedTimelineStep: getMatchTimelineStep(match),
+    selectedPlayerId: match.players.length > 0 ? match.players[0].id : undefined,
+    selectedTimelineStep: { phase: "night", index: 1 },
     timelineViewMode: "focus",
     compactMode: false,
     panels: {

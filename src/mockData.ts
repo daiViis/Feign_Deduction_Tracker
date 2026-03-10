@@ -612,6 +612,29 @@ export function createMockMatch(): MatchSeed {
   };
 }
 
+export function createEmptyMatch(): MatchSeed {
+  return {
+    title: "New Match",
+    round: 1,
+    phase: "night",
+    ingestionMode: "manual",
+    selfPlayerIgnoreActions: false,
+    ignoreActionsByPlayerId: {},
+    fakeClaims: {},
+    roleEvidenceOverrides: {},
+    players: [],
+    claims: [],
+    actions: [],
+    usedAbilities: [],
+    contradictions: [],
+    reviewQueue: [],
+    timelineEvents: [],
+    timelineGroups: [],
+    roles: roleCatalog.map((role) => ({ ...role })),
+    tags: [...tagOptions]
+  };
+}
+
 function roleIdAt(index: number, fallbackIndex = 0) {
   return roleCatalog[index]?.id ?? roleCatalog[fallbackIndex]?.id;
 }
