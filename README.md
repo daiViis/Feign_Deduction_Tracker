@@ -1,4 +1,4 @@
-# Feign Deduction Tracker <img width="1024" height="1024" alt="icon" src="https://github.com/user-attachments/assets/1e6da130-91ee-4198-94d7-badcb7f6c646" />
+# Feign Deduction Tracker <img width="124" height="124" alt="icon" src="https://github.com/user-attachments/assets/1e6da130-91ee-4198-94d7-badcb7f6c646" />
 
 **Feign Deduction Tracker** is an interactive Overwolf overlay application for the social deduction game **Feign**. It serves as an in-game analytical hub, allowing players to easily track information, map out player movements, and deduce remaining roles to catch imposters and avoid mislynches.
 
