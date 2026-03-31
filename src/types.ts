@@ -97,6 +97,12 @@ export interface TimelineStep {
 export interface RoleOption {
   id: string;
   imageSrc: string;
+  side?: "Innocent" | "Imposter" | "Neutral" | "Innocent or Imposter";
+  pickerSummary?: string;
+  summary?: string;
+  visitBehavior?: string;
+  keyEvidence?: string;
+  limitsOrCaveats?: string;
 }
 
 export interface NoteEntry {

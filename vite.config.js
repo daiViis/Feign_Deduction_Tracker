@@ -15,7 +15,8 @@ export default defineConfig({
                 left: resolve(__dirname, "left.html"),
                 right: resolve(__dirname, "right.html"),
                 known: resolve(__dirname, "known.html"),
-                visit: resolve(__dirname, "visit.html")
+                visit: resolve(__dirname, "visit.html"),
+                rolePicker: resolve(__dirname, "role-picker.html")
             }
         }
     },

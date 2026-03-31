@@ -10,6 +10,7 @@ import {
 import { actionOptions, createMockMatch } from "./mockData";
 import { MAD_ROLE_ID, getRoleById } from "./roles";
 import { getAllowedClassesForRole, getForcedClassForRole } from "./playerClass";
+import { requestRoleSelection } from "./rolePickerBridge";
 import {
   type Claim,
   type FakeClaim,
@@ -1032,19 +1033,6 @@ function RoleDropdown(props: {
     onAssignRole,
     onFocus
   } = props;
-  const [open, setOpen] = useState(false);
-  const [openUpward, setOpenUpward] = useState(false);
-  const [menuStyle, setMenuStyle] = useState<{
-    left: number;
-    top?: number;
-    bottom?: number;
-    width: number;
-  }>({
-    left: 0,
-    top: 0,
-    width: 0
-  });
-  const rootRef = useRef<HTMLDivElement | null>(null);
   const primaryRoleOption = getRoleById(primaryRole, roles);
   const hasMadRole = roles.some((role) => role.id === MAD_ROLE_ID);
   const canPickSecondary = primaryRole === MAD_ROLE_ID && hasMadRole;
@@ -1053,80 +1041,23 @@ function RoleDropdown(props: {
       role.id !== MAD_ROLE_ID && getAllowedClassesForRole(role.id).includes("Innocent")
   );
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!(event.target instanceof Node)) {
-        return;
-      }
-
-      if (!rootRef.current?.contains(event.target)) {
-        setOpen(false);
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const rect = rootRef.current?.getBoundingClientRect();
-    if (!rect) {
-      return;
-    }
-
-    const estimatedHeight = canPickSecondary ? 372 : 220;
-    const width = Math.min(284, window.innerWidth - 28);
-    const left = clamp(rect.left, EDGE_GAP, Math.max(EDGE_GAP, window.innerWidth - width - EDGE_GAP));
-    const shouldOpenUpward =
-      window.innerHeight - rect.bottom < estimatedHeight && rect.top > estimatedHeight / 2;
-    setOpenUpward(shouldOpenUpward);
-    setMenuStyle(
-      shouldOpenUpward
-        ? {
-            left,
-            bottom: Math.max(EDGE_GAP, window.innerHeight - rect.top + 4),
-            width
-          }
-        : {
-            left,
-            top: Math.min(window.innerHeight - EDGE_GAP, rect.bottom + 4),
-            width
-          }
-    );
-  }, [canPickSecondary, open, roles.length]);
-
   return (
-    <div
-      ref={rootRef}
-      className={`role-dropdown${compact ? " is-compact" : ""}${open ? " is-open" : ""}`}
-      onClick={(event) => event.stopPropagation()}
-    >
+    <div className={`role-dropdown${compact ? " is-compact" : ""}`} onClick={(event) => event.stopPropagation()}>
       <button
         type="button"
         className="role-dropdown__trigger"
-        aria-expanded={open}
-        onClick={() => {
+        onClick={async () => {
           onFocus?.();
-          setOpen((current) => !current);
+          const response = await requestRoleSelection({
+            title: "Select Role",
+            roles,
+            value: primaryRole,
+            allowClear: true,
+            clearLabel: "Unknown"
+          });
+          if (response.status === "picked") {
+            onAssignRole("primary", response.roleId);
+          }
         }}
       >
         <span className="role-trigger__icon">
@@ -1145,42 +1076,29 @@ function RoleDropdown(props: {
         </span>
       </button>
 
-      {open ? (
-        <div
-          className={`role-dropdown__menu${openUpward ? " is-upward" : ""}`}
-          style={menuStyle}
+      {canPickSecondary ? (
+        <button
+          type="button"
+          className="role-dropdown__secondary-trigger"
+          onClick={async () => {
+            onFocus?.();
+            const response = await requestRoleSelection({
+              title: "Select Pretending Role",
+              roles: pretendingRoles,
+              value: secondaryRole,
+              allowClear: true,
+              clearLabel: "None"
+            });
+            if (response.status === "picked") {
+              onAssignRole("secondary", response.roleId);
+            }
+          }}
         >
-          <RoleSelectionSection
-            title="Role"
-            roles={roles}
-            value={primaryRole}
-            allowClear
-            clearLabel="Unknown"
-            onPick={(roleId) => {
-              onFocus?.();
-              onAssignRole("primary", roleId);
-              if (roleId === MAD_ROLE_ID) {
-                return;
-              }
-              setOpen(false);
-            }}
-          />
-
-          {canPickSecondary ? (
-            <RoleSelectionSection
-              title="Pretending Role"
-              roles={pretendingRoles}
-              value={secondaryRole}
-              allowClear
-              clearLabel="None"
-              onPick={(roleId) => {
-                onFocus?.();
-                onAssignRole("secondary", roleId);
-                setOpen(false);
-              }}
-            />
-          ) : null}
-        </div>
+          <span className="role-dropdown__secondary-label">Pretending</span>
+          <span className="role-dropdown__secondary-value">
+            {secondaryRole ?? "None"}
+          </span>
+        </button>
       ) : null}
     </div>
   );

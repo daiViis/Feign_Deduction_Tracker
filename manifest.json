@@ -190,6 +190,39 @@
           "left": 8,
           "top": 708
         }
+      },
+      "RolePickerWindow": {
+        "file": "dist/role-picker.html",
+        "transparent": true,
+        "resizable": true,
+        "show_in_taskbar": false,
+        "show_minimize": false,
+        "show_maximize": false,
+        "show_background_layer": false,
+        "clickthrough": false,
+        "grab_keyboard_focus": true,
+        "in_game_only": false,
+        "desktop_only": false,
+        "block_top_window_navigation": true,
+        "keep_window_location": true,
+        "allow_local_file_access": true,
+        "background_optimization": false,
+        "size": {
+          "width": 720,
+          "height": 560
+        },
+        "min_size": {
+          "width": 520,
+          "height": 420
+        },
+        "max_size": {
+          "width": 960,
+          "height": 760
+        },
+        "start_position": {
+          "left": 640,
+          "top": 180
+        }
       }
     },
     "hotkeys": {

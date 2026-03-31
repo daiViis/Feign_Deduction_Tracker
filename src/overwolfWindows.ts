@@ -1,6 +1,7 @@
 import type { PanelWindowKey } from "./overlayStore";
 
 export const CONTROLLER_WINDOW = "ControllerWindow";
+export const ROLE_PICKER_WINDOW = "RolePickerWindow";
 
 export const PANEL_WINDOW_NAMES: Record<PanelWindowKey, string> = {
   left_panel: "LeftPanelWindow",
@@ -155,6 +156,65 @@ export async function dragResizeCurrentWindow(
   overwolf.windows.dragResize(currentWindow.id, edge, () => {
     onComplete?.();
   });
+}
+
+export async function startManualResizeCurrentWindow(
+  startClientX: number,
+  startClientY: number,
+  onComplete?: () => void,
+  minWidth = 280,
+  minHeight = 220
+) {
+  const currentWindow = await getCurrentWindowInfo();
+  if (!currentWindow || !isOverwolfAvailable()) {
+    return;
+  }
+
+  const startWidth = currentWindow.width;
+  const startHeight = currentWindow.height;
+  let frameHandle = 0;
+  let pendingWidth = startWidth;
+  let pendingHeight = startHeight;
+
+  const flushResize = () => {
+    frameHandle = 0;
+    overwolf.windows.changeSize(
+      currentWindow.id,
+      Math.max(minWidth, Math.round(pendingWidth)),
+      Math.max(minHeight, Math.round(pendingHeight)),
+      () => {}
+    );
+  };
+
+  const handleMouseMove = (event: MouseEvent) => {
+    pendingWidth = startWidth + (event.clientX - startClientX);
+    pendingHeight = startHeight + (event.clientY - startClientY);
+    if (!frameHandle) {
+      frameHandle = window.requestAnimationFrame(flushResize);
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (frameHandle) {
+      window.cancelAnimationFrame(frameHandle);
+      frameHandle = 0;
+    }
+
+    window.removeEventListener("mousemove", handleMouseMove);
+    window.removeEventListener("mouseup", handleMouseUp);
+
+    overwolf.windows.changeSize(
+      currentWindow.id,
+      Math.max(minWidth, Math.round(pendingWidth)),
+      Math.max(minHeight, Math.round(pendingHeight)),
+      () => {
+        onComplete?.();
+      }
+    );
+  };
+
+  window.addEventListener("mousemove", handleMouseMove);
+  window.addEventListener("mouseup", handleMouseUp);
 }
 
 async function obtainDeclaredWindow(windowName: string) {

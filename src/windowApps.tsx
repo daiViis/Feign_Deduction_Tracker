@@ -76,13 +76,18 @@ import {
   changeDeclaredWindowPosition,
   changeDeclaredWindowSize,
   dragCurrentWindow,
-  dragResizeCurrentWindow,
   getCurrentWindowInfo,
   hideDeclaredWindow,
   isOverwolfAvailable,
   restoreDeclaredWindow,
-  getMonitorsList
+  startManualResizeCurrentWindow
 } from "./overwolfWindows";
+import {
+  readCurrentRolePickerRequest,
+  requestRoleSelection,
+  respondToRolePicker,
+  subscribeToRolePickerRequests
+} from "./rolePickerBridge";
 import {
   type AbilityPlayerReference,
   type AbilityRoleReference,
@@ -607,6 +612,60 @@ export function VisitMapWindowApp() {
   );
 }
 
+export function RolePickerWindowApp() {
+  const [request, setRequest] = useState(() => readCurrentRolePickerRequest());
+
+  useEffect(() => subscribeToRolePickerRequests(setRequest), []);
+
+  return (
+    <div className="window-shell role-picker-window-shell">
+      <section className="panel-window role-picker-window">
+        <PanelHeader
+          title={request?.title ?? "Role Picker"}
+          onDragStart={() => void dragCurrentWindow()}
+          onHide={() =>
+            void respondToRolePicker({
+              requestId: request?.requestId ?? "unknown",
+              status: "cancelled"
+            })
+          }
+        />
+
+        <div className="panel-window__body role-picker-window__body">
+          {request ? (
+            <RoleSelectionSection
+              title="Role"
+              roles={request.roles}
+              value={request.value}
+              allowClear={request.allowClear}
+              clearLabel={request.clearLabel}
+              onPick={(roleId) =>
+                void respondToRolePicker({
+                  requestId: request.requestId,
+                  status: "picked",
+                  roleId
+                })
+              }
+            />
+          ) : (
+            <div className="detail-empty">Open a role selector from any overlay window.</div>
+          )}
+        </div>
+        <button
+          type="button"
+          className="panel-resizer"
+          aria-label="Resize panel"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void startManualResizeCurrentWindow(event.clientX, event.clientY);
+          }}
+        />
+      </section>
+    </div>
+  );
+}
+
 function PanelWindowLayout(props: {
   panel: PanelWindowKey;
   title: string;
@@ -617,17 +676,6 @@ function PanelWindowLayout(props: {
   const state = useOverlayState();
   const panelState = state.panels[panel];
   const collapsed = allowCollapse && panelState.collapsed;
-  const [isSecondMonitor, setIsSecondMonitor] = useState(false);
-
-  useEffect(() => {
-    async function checkMonitors() {
-      const monitors = await getMonitorsList();
-      if (monitors.length > 1) {
-        setIsSecondMonitor(true);
-      }
-    }
-    void checkMonitors();
-  }, []);
 
   const handleHide = async () => {
     dispatchOverlayAction({
@@ -654,11 +702,9 @@ function PanelWindowLayout(props: {
     await syncPanelWindowState(panel, nextCollapsed);
   };
 
-  const backgroundClass = isSecondMonitor ? " is-solid-background" : "";
-
   return (
     <div className="window-shell">
-      <section className={`panel-window${collapsed ? " is-collapsed" : ""}${backgroundClass}`}>
+      <section className={`panel-window${collapsed ? " is-collapsed" : ""}`}>
         <PanelHeader
           title={title}
           onDragStart={() => void dragCurrentWindow(() => void syncPanelBounds(panel))}
@@ -669,14 +715,15 @@ function PanelWindowLayout(props: {
 
         {!collapsed ? <div className="panel-window__body">{children}</div> : null}
 
-        {!collapsed && !isSecondMonitor ? (
+        {!collapsed ? (
           <button
             type="button"
             className="panel-resizer"
             aria-label="Resize panel"
             onMouseDown={(event) => {
+              event.preventDefault();
               event.stopPropagation();
-              void dragResizeCurrentWindow("BottomRight", () =>
+              void startManualResizeCurrentWindow(event.clientX, event.clientY, () =>
                 void syncPanelBounds(panel)
               );
             }}
@@ -2621,17 +2668,25 @@ function UsedAbilityRolePicker(props: {
   onPick: (roleType: UsedAbilityRoleType) => void;
 }) {
   const { roles, value, onPick } = props;
-  const [open, setOpen] = useState(false);
   const currentRole = roles.find((role) => role.id === value);
-  useClosePickerOnWindowBlur(open, () => setOpen(false));
 
   return (
     <div className="role-dropdown" onClick={(event) => event.stopPropagation()}>
       <button
         type="button"
         className="role-dropdown__trigger"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={async () => {
+          const response = await requestRoleSelection({
+            title: "Used Ability Role",
+            roles,
+            value,
+            allowClear: false,
+            clearLabel: ""
+          });
+          if (response.status === "picked" && response.roleId) {
+            onPick(response.roleId as UsedAbilityRoleType);
+          }
+        }}
       >
         <span className="role-trigger__icon">
           {currentRole ? (
@@ -2642,44 +2697,6 @@ function UsedAbilityRolePicker(props: {
         </span>
         <span className="role-trigger__label">{value ?? "Select role"}</span>
       </button>
-
-      {open ? (
-        <div className="role-dropdown__overlay" onClick={() => setOpen(false)}>
-          <div
-            className="role-dropdown__panel"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="role-dropdown__panel-header">
-              <div className="role-dropdown__panel-title">Used Ability Role</div>
-              <button
-                type="button"
-                className="panel-header__button panel-header__button--icon"
-                aria-label="Close role selector"
-                title="Close role selector"
-                onClick={() => setOpen(false)}
-              >
-                x
-              </button>
-            </div>
-
-            <RoleSelectionSection
-              title="Role"
-              roles={roles}
-              value={value}
-              allowClear={false}
-              clearLabel=""
-              onPick={(roleId) => {
-                if (!roleId) {
-                  return;
-                }
-
-                onPick(roleId as UsedAbilityRoleType);
-                setOpen(false);
-              }}
-            />
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -2779,20 +2796,28 @@ function AbilityRoleValuePicker(props: {
   inline?: boolean;
 }) {
   const { label, roles, value, allowUnknown = false, onPick, inline = false } = props;
-  const [open, setOpen] = useState(false);
   const currentRole = getRoleById(
     value === ABILITY_UNKNOWN_VALUE ? undefined : value,
     roles
   );
-  useClosePickerOnWindowBlur(open, () => setOpen(false));
 
   const content = (
     <div className="role-dropdown" onClick={(event) => event.stopPropagation()}>
       <button
         type="button"
         className="role-dropdown__trigger"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={async () => {
+          const response = await requestRoleSelection({
+            title: label,
+            roles,
+            value: value === ABILITY_UNKNOWN_VALUE ? undefined : value,
+            allowClear: allowUnknown,
+            clearLabel: "?"
+          });
+          if (response.status === "picked") {
+            onPick(response.roleId ?? ABILITY_UNKNOWN_VALUE);
+          }
+        }}
       >
         <span className="role-trigger__icon">
           {currentRole ? (
@@ -2805,40 +2830,6 @@ function AbilityRoleValuePicker(props: {
           {formatAbilityRoleReference(value)}
         </span>
       </button>
-
-      {open ? (
-        <div className="role-dropdown__overlay" onClick={() => setOpen(false)}>
-          <div
-            className="role-dropdown__panel"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="role-dropdown__panel-header">
-              <div className="role-dropdown__panel-title">{label}</div>
-              <button
-                type="button"
-                className="panel-header__button panel-header__button--icon"
-                aria-label="Close role selector"
-                title="Close role selector"
-                onClick={() => setOpen(false)}
-              >
-                x
-              </button>
-            </div>
-
-            <RoleSelectionSection
-              title="Role"
-              roles={roles}
-              value={value === ABILITY_UNKNOWN_VALUE ? undefined : value}
-              allowClear={allowUnknown}
-              clearLabel="?"
-              onPick={(roleId) => {
-                onPick(roleId ?? ABILITY_UNKNOWN_VALUE);
-                setOpen(false);
-              }}
-            />
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 
@@ -3175,7 +3166,6 @@ export function RoleDropdown(props: {
     onAssignRole,
     onFocus
   } = props;
-  const [open, setOpen] = useState(false);
   const primaryRoleOption = getRoleById(primaryRole, roles);
   const hasMadRole = roles.some((role) => role.id === MAD_ROLE_ID);
   const canPickSecondary = primaryRole === MAD_ROLE_ID && hasMadRole;
@@ -3183,23 +3173,25 @@ export function RoleDropdown(props: {
     (role) =>
       role.id !== MAD_ROLE_ID && getAllowedClassesForRole(role.id).includes("Innocent")
   );
-  useClosePickerOnWindowBlur(open, () => setOpen(false));
 
   return (
-    <div
-      className={`role-dropdown${compact ? " is-compact" : ""}${
-        open ? " is-open" : ""
-      }`}
-      onClick={(event) => event.stopPropagation()}
-    >
+    <div className={`role-dropdown${compact ? " is-compact" : ""}`} onClick={(event) => event.stopPropagation()}>
       <button
         type="button"
         className={`role-dropdown__trigger${iconOnly ? " is-icon-only" : ""}`}
-        aria-expanded={open}
         title={getRoleSelectionText(primaryRole, secondaryRole)}
-        onClick={() => {
+        onClick={async () => {
           onFocus?.();
-          setOpen((current) => !current);
+          const response = await requestRoleSelection({
+            title: "Select Role",
+            roles,
+            value: primaryRole,
+            allowClear: true,
+            clearLabel: "?"
+          });
+          if (response.status === "picked") {
+            onAssignRole("primary", response.roleId);
+          }
         }}
       >
         <span className="role-trigger__icon">
@@ -3220,60 +3212,29 @@ export function RoleDropdown(props: {
         ) : null}
       </button>
 
-      {open ? (
-        <div
-          className="role-dropdown__overlay"
-          onClick={() => setOpen(false)}
+      {canPickSecondary && !iconOnly ? (
+        <button
+          type="button"
+          className="role-dropdown__secondary-trigger"
+          onClick={async () => {
+            onFocus?.();
+            const response = await requestRoleSelection({
+              title: "Select Pretending Role",
+              roles: pretendingRoles,
+              value: secondaryRole,
+              allowClear: true,
+              clearLabel: "None"
+            });
+            if (response.status === "picked") {
+              onAssignRole("secondary", response.roleId);
+            }
+          }}
         >
-          <div
-            className="role-dropdown__panel"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="role-dropdown__panel-header">
-              <div className="role-dropdown__panel-title">Select Role</div>
-              <button
-                type="button"
-                className="panel-header__button panel-header__button--icon"
-                aria-label="Close role selector"
-                title="Close role selector"
-                onClick={() => setOpen(false)}
-              >
-                x
-              </button>
-            </div>
-
-            <RoleSelectionSection
-              title="Role"
-              roles={roles}
-              value={primaryRole}
-              allowClear
-              clearLabel="?"
-              onPick={(roleId) => {
-                onFocus?.();
-                onAssignRole("primary", roleId);
-                if (roleId === MAD_ROLE_ID) {
-                  return;
-                }
-                setOpen(false);
-              }}
-            />
-
-            {canPickSecondary ? (
-              <RoleSelectionSection
-                title="Pretending Role"
-                roles={pretendingRoles}
-                value={secondaryRole}
-                allowClear
-                clearLabel="None"
-                onPick={(roleId) => {
-                  onFocus?.();
-                  onAssignRole("secondary", roleId);
-                  setOpen(false);
-                }}
-              />
-            ) : null}
-          </div>
-        </div>
+          <span className="role-dropdown__secondary-label">Pretending</span>
+          <span className="role-dropdown__secondary-value">
+            {secondaryRole ?? "None"}
+          </span>
+        </button>
       ) : null}
     </div>
   );
@@ -3305,27 +3266,27 @@ export function SingleRoleDropdown(props: {
     onPick,
     onFocus
   } = props;
-  const [open, setOpen] = useState(false);
   const selectedRoleOption = getRoleById(value, roles);
   const selectionText = value || emptyLabel;
 
-  useClosePickerOnWindowBlur(open, () => setOpen(false));
-
   return (
-    <div
-      className={`role-dropdown${compact ? " is-compact" : ""}${
-        open ? " is-open" : ""
-      }`}
-      onClick={(event) => event.stopPropagation()}
-    >
+    <div className={`role-dropdown${compact ? " is-compact" : ""}`} onClick={(event) => event.stopPropagation()}>
       <button
         type="button"
         className={`role-dropdown__trigger${iconOnly ? " is-icon-only" : ""}`}
-        aria-expanded={open}
         title={selectionText}
-        onClick={() => {
+        onClick={async () => {
           onFocus?.();
-          setOpen((current) => !current);
+          const response = await requestRoleSelection({
+            title: panelTitle,
+            roles,
+            value,
+            allowClear,
+            clearLabel
+          });
+          if (response.status === "picked") {
+            onPick(response.roleId);
+          }
         }}
       >
         <span className="role-trigger__icon">
@@ -3343,44 +3304,6 @@ export function SingleRoleDropdown(props: {
           <span className="role-trigger__label">{selectionText}</span>
         ) : null}
       </button>
-
-      {open ? (
-        <div
-          className="role-dropdown__overlay"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="role-dropdown__panel"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="role-dropdown__panel-header">
-              <div className="role-dropdown__panel-title">{panelTitle}</div>
-              <button
-                type="button"
-                className="panel-header__button panel-header__button--icon"
-                aria-label="Close role selector"
-                title="Close role selector"
-                onClick={() => setOpen(false)}
-              >
-                x
-              </button>
-            </div>
-
-            <RoleSelectionSection
-              title={sectionTitle}
-              roles={roles}
-              value={value}
-              allowClear={allowClear}
-              clearLabel={clearLabel}
-              onPick={(roleId) => {
-                onFocus?.();
-                onPick(roleId);
-                setOpen(false);
-              }}
-            />
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -3394,6 +3317,51 @@ function RoleSelectionSection(props: {
   onPick: (roleId?: string) => void;
 }) {
   const { title, roles, value, allowClear, clearLabel, onPick } = props;
+  const [previewRoleId, setPreviewRoleId] = useState<string | undefined>(value);
+  const [search, setSearch] = useState("");
+  const [sideFilter, setSideFilter] = useState<RoleSideFilter>("all");
+  const previewRole = getRoleById(previewRoleId ?? value, roles);
+  const filteredRoles = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    const nextRoles = roles.filter((role) => {
+      if (!matchesRoleSideFilter(role, sideFilter)) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const haystack = [
+        role.id,
+        role.side,
+        role.pickerSummary,
+        role.summary,
+        role.visitBehavior,
+        role.keyEvidence,
+        role.limitsOrCaveats
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(normalizedSearch);
+    });
+
+    return nextRoles.sort((left, right) => {
+      const leftSelected = left.id === value ? 1 : 0;
+      const rightSelected = right.id === value ? 1 : 0;
+      if (leftSelected !== rightSelected) {
+        return rightSelected - leftSelected;
+      }
+
+      return left.id.localeCompare(right.id);
+    });
+  }, [roles, search, sideFilter, value]);
+
+  useEffect(() => {
+    setPreviewRoleId(value);
+  }, [value, roles]);
 
   return (
     <div className="role-dropdown__section">
@@ -3402,40 +3370,212 @@ function RoleSelectionSection(props: {
       {roles.length === 0 ? (
         <div className="role-dropdown__empty">No role images found.</div>
       ) : (
-        <div className="role-grid">
-          {allowClear ? (
-            <button
-              type="button"
-              className={`role-option role-option--clear${
-                !value ? " is-active" : ""
-              }`}
-              onClick={() => onPick(undefined)}
-            >
-              <span className="role-option__icon role-option__icon--empty">?</span>
-              <span className="role-option__name">{clearLabel}</span>
-            </button>
-          ) : null}
-
-          {roles.map((role) => (
-            <button
-              key={role.id}
-              type="button"
-              className={`role-option${role.id === value ? " is-active" : ""}`}
-              onClick={() => onPick(role.id)}
-              title={role.id}
-            >
-              <img
-                className={`role-option__image ${getClassToneClass(getForcedClassForRole(role.id) ?? "Neutral")}`}
-                src={role.imageSrc}
-                alt=""
+        <div className="role-dropdown__content">
+          <div className="role-dropdown__selection">
+            <div className="role-toolbar">
+              <input
+                type="text"
+                className="role-search-input"
+                value={search}
+                placeholder="Search role, clue, caveat..."
+                onChange={(event) => setSearch(event.target.value)}
               />
-              <span className="role-option__name">{role.id}</span>
-            </button>
-          ))}
+              <div className="role-filter-segmented" role="group" aria-label="Filter roles by side">
+                {ROLE_SIDE_FILTERS.map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    className={`role-filter-segment${sideFilter === filter.id ? " is-active" : ""}`}
+                    onClick={() => setSideFilter(filter.id)}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+              <div className="role-toolbar__meta">
+                {filteredRoles.length} / {roles.length}
+              </div>
+            </div>
+
+            <div className="role-grid-scroll">
+              <div className="role-grid">
+                {allowClear ? (
+                  <button
+                    type="button"
+                    className={`role-option role-option--clear${
+                      !value ? " is-active" : ""
+                    }`}
+                    onMouseEnter={() => setPreviewRoleId(undefined)}
+                    onFocus={() => setPreviewRoleId(undefined)}
+                    onClick={() => onPick(undefined)}
+                  >
+                    <span className="role-option__icon role-option__icon--empty">?</span>
+                    <span className="role-option__name">{clearLabel}</span>
+                    <span className="role-option__summary">Clear the current role choice.</span>
+                  </button>
+                ) : null}
+
+                {filteredRoles.map((role) => (
+                  <button
+                    key={role.id}
+                    type="button"
+                    className={`role-option${role.id === value ? " is-active" : ""}`}
+                    onMouseEnter={() => setPreviewRoleId(role.id)}
+                    onFocus={() => setPreviewRoleId(role.id)}
+                    onClick={() => onPick(role.id)}
+                    title={role.id}
+                  >
+                    <div className="role-option__top">
+                      <img
+                        className={`role-option__image ${getClassToneClass(getForcedClassForRole(role.id) ?? "Neutral")}`}
+                        src={role.imageSrc}
+                        alt=""
+                      />
+                      {role.side ? (
+                        <span className={`role-option__badge ${getRoleSideToneClass(role)}`}>
+                          {getShortRoleSideLabel(role)}
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="role-option__name">{role.id}</span>
+                    <span className="role-option__summary">
+                      {role.pickerSummary ?? "No summary available."}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {filteredRoles.length === 0 ? (
+              <div className="role-dropdown__empty role-dropdown__empty--boxed">
+                No roles match the current search or filter.
+              </div>
+            ) : null}
+          </div>
+
+          <RoleReferencePanel role={previewRole} clearLabel={clearLabel} />
         </div>
       )}
     </div>
   );
+}
+
+function RoleReferencePanel(props: {
+  role?: RoleOption;
+  clearLabel: string;
+}) {
+  const { role, clearLabel } = props;
+
+  if (!role) {
+    return (
+      <aside className="role-reference role-reference--empty">
+        <div className="role-reference__eyebrow">Reference</div>
+        <div className="role-reference__title">{clearLabel}</div>
+        <div className="role-reference__summary">
+          Remove the assigned role or leave it unknown.
+        </div>
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="role-reference">
+      <div className="role-reference__header">
+        <span className="role-reference__icon">
+          <img
+            className={`role-reference__image ${getClassToneClass(getForcedClassForRole(role.id) ?? "Neutral")}`}
+            src={role.imageSrc}
+            alt=""
+          />
+        </span>
+        <div className="role-reference__header-text">
+          <div className="role-reference__title-row">
+            <div className="role-reference__title">{role.id}</div>
+            {role.side ? <span className="role-reference__badge">{role.side}</span> : null}
+          </div>
+          <div className="role-reference__summary">
+            {role.summary ?? role.pickerSummary ?? "No description available."}
+          </div>
+        </div>
+      </div>
+
+      <RoleReferenceField label="Visit" value={role.visitBehavior} />
+      <RoleReferenceField label="Evidence" value={role.keyEvidence} />
+      <RoleReferenceField label="Caveats" value={role.limitsOrCaveats} />
+    </aside>
+  );
+}
+
+function RoleReferenceField(props: {
+  label: string;
+  value?: string;
+}) {
+  const { label, value } = props;
+  if (!value) {
+    return null;
+  }
+
+  return (
+    <div className="role-reference__field">
+      <div className="role-reference__label">{label}</div>
+      <div className="role-reference__value">{value}</div>
+    </div>
+  );
+}
+
+type RoleSideFilter = "all" | "innocent" | "imposter" | "neutral" | "mixed";
+
+const ROLE_SIDE_FILTERS: { id: RoleSideFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "innocent", label: "Innocent" },
+  { id: "imposter", label: "Imposter" },
+  { id: "neutral", label: "Neutral" },
+  { id: "mixed", label: "Mixed" }
+];
+
+function matchesRoleSideFilter(role: RoleOption, filter: RoleSideFilter) {
+  if (filter === "all") {
+    return true;
+  }
+
+  if (!role.side) {
+    return false;
+  }
+
+  const normalized = role.side.toLowerCase();
+  if (filter === "mixed") {
+    return normalized.includes("or");
+  }
+
+  return normalized.includes(filter);
+}
+
+function getShortRoleSideLabel(role: RoleOption) {
+  switch (role.side) {
+    case "Innocent":
+      return "Town";
+    case "Imposter":
+      return "Imp";
+    case "Neutral":
+      return "Neu";
+    case "Innocent or Imposter":
+      return "Mix";
+    default:
+      return role.side ?? "";
+  }
+}
+
+function getRoleSideToneClass(role: RoleOption) {
+  switch (role.side) {
+    case "Innocent":
+      return "is-innocent";
+    case "Imposter":
+      return "is-killer";
+    case "Neutral":
+      return "is-neutral";
+    default:
+      return "";
+  }
 }
 
 function SuspicionToggle(props: {
@@ -4325,65 +4465,29 @@ function ActionRolePicker(props: {
   onPick: (roleId: string) => void;
 }) {
   const { roles, onPick } = props;
-  const [open, setOpen] = useState(false);
-  useClosePickerOnWindowBlur(open, () => setOpen(false));
 
   return (
-    <div
-      className={`quick-picker${open ? " is-open" : ""}`}
-      onClick={(event) => event.stopPropagation()}
-    >
+    <div className="quick-picker" onClick={(event) => event.stopPropagation()}>
       <button
         type="button"
         className="role-dropdown__trigger quick-picker__trigger"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={async () => {
+          const response = await requestRoleSelection({
+            title: "Select Role",
+            roles,
+            allowClear: false,
+            clearLabel: ""
+          });
+          if (response.status === "picked" && response.roleId) {
+            onPick(response.roleId);
+          }
+        }}
       >
         <span className="role-trigger__icon">
           <span className="role-trigger__fallback">?</span>
         </span>
         <span className="role-trigger__label">Role...</span>
       </button>
-
-      {open ? (
-        <div
-          className="role-dropdown__overlay"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="role-dropdown__panel"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="role-dropdown__panel-header">
-              <div className="role-dropdown__panel-title">Select Role</div>
-              <button
-                type="button"
-                className="panel-header__button panel-header__button--icon"
-                aria-label="Close role selector"
-                title="Close role selector"
-                onClick={() => setOpen(false)}
-              >
-                x
-              </button>
-            </div>
-
-            <RoleSelectionSection
-              title="Role"
-              roles={roles}
-              allowClear={false}
-              clearLabel=""
-              onPick={(roleId) => {
-                if (!roleId) {
-                  return;
-                }
-
-                onPick(roleId);
-                setOpen(false);
-              }}
-            />
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -4558,8 +4662,6 @@ function usePanelWindow(panel: PanelWindowKey) {
   }, [
     panelState.collapsed,
     panel,
-    panelState.expandedHeight,
-    panelState.expandedWidth,
     panelState.visible
   ]);
 }
