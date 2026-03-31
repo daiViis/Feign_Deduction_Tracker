@@ -296,11 +296,7 @@ button:focus-visible {
   padding: 0;
   border: 0;
   border-radius: 0;
-  background: linear-gradient(
-    135deg,
-    transparent 0 45%,
-    rgba(255, 255, 255, 0.06) 45% 100%
-  );
+  background: transparent;
   cursor: nwse-resize;
 }
 
@@ -312,7 +308,7 @@ button:focus-visible {
   bottom: 4px;
   width: 9px;
   height: 1.5px;
-  background: rgba(226, 232, 240, 0.9);
+  background: transparent;
   transform: rotate(45deg);
   transform-origin: right center;
 }
@@ -328,6 +324,11 @@ button:focus-visible {
     transparent 0 40%,
     rgba(59, 130, 246, 0.12) 40% 100%
   );
+}
+
+.panel-resizer:hover::before,
+.panel-resizer:hover::after {
+  background: rgba(226, 232, 240, 0.9);
 }
 
 .table-panel {

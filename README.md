@@ -32,3 +32,40 @@ A visual mapping tool that draws the web of interactions. It parses the claims i
 An automated deduction engine. As players claim roles and perform actions, this panel tracks the confirmed and possible roles remaining in the setup, helping you determine who is telling the truth.
 
 <img width="277" height="226" alt="rolesinplay" src="https://github.com/user-attachments/assets/d57541e9-2832-476d-b8dc-7576899ff2e8" />
+
+## Shortcuts
+
+### Global Overwolf Hotkeys
+These work through Overwolf even when the overlay windows are not focused.
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl+Shift+D` | Toggle the full overlay: controller bar plus any panel that is currently enabled in overlay state |
+| `Ctrl+Shift+L` | Toggle the Player List panel |
+| `Ctrl+Shift+Q` | Toggle the Detail panel |
+| `Ctrl+Shift+K` | Toggle the Roles in Play panel |
+| `Ctrl+Shift+V` | Toggle the Visit Map panel |
+
+### In-App Panel Shortcuts
+These work when an overlay window is focused and the cursor is not inside a text input.
+
+| Shortcut | Action | Availability |
+| --- | --- | --- |
+| `Alt+1` | Toggle Player List | Multi-window overlay and legacy single-window view |
+| `Alt+2` | Toggle Detail | Multi-window overlay and legacy single-window view |
+| `Alt+3` | Toggle Roles in Play | Multi-window overlay |
+| `Alt+4` | Toggle Visit Map | Multi-window overlay |
+
+### Picker and Editing Actions
+
+| Shortcut | Action | Availability |
+| --- | --- | --- |
+| `Escape` | Close the open role picker or quick picker | Role picker and quick picker panels |
+| `Enter` | Confirm a player-name edit | Player name editors |
+| `Escape` | Cancel a player-name edit and restore the previous value | Player name editors |
+
+## Notes
+
+- The global hotkeys are defined in [`manifest.json`](./manifest.json) and can be customized through Overwolf hotkey settings.
+- The `Alt+1` to `Alt+4` shortcuts are handled inside the app, so the relevant overlay window must be focused for them to work.
+- In the legacy single-window route, only `Alt+1` and `Alt+2` are available because that layout only has left and right panels.
