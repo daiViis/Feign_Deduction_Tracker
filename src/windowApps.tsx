@@ -20,6 +20,7 @@ import {
 } from "./overlayStore";
 import {
   PLAYER_CLASS_OPTIONS,
+  formatPlayerClassLabel,
   getClassCounts,
   getAllowedClassesForRole,
   getClassRoleId,
@@ -120,6 +121,7 @@ export function ControllerWindowApp() {
   const state = useOverlayState();
   const [collapsed, setCollapsed] = useState(() => readControllerCollapsed());
   usePanelHotkeys();
+  useOverlayGlassEffect();
 
   useEffect(() => {
     if (state.compactMode) {
@@ -303,6 +305,29 @@ export function ControllerWindowApp() {
                 Reset Match
               </button>
 
+              <div className="glass-control" onMouseDown={stopHeaderDrag} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 8px', borderLeft: '1px solid var(--border)', marginLeft: 8 }}>
+                <span title="Glass Opacity" style={{ fontSize: '10px', opacity: 0.6, cursor: 'default' }}>O</span>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="0.9"
+                  step="0.05"
+                  value={state.glassOpacity}
+                  onChange={(e) => dispatchOverlayAction({ type: "setGlassSettings", opacity: parseFloat(e.target.value), blur: state.glassBlur })}
+                  style={{ width: 44, height: 4, cursor: 'pointer' }}
+                />
+                <span title="Glass Blur" style={{ fontSize: '10px', opacity: 0.6, cursor: 'default', marginLeft: 4 }}>B</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="40"
+                  step="2"
+                  value={state.glassBlur}
+                  onChange={(e) => dispatchOverlayAction({ type: "setGlassSettings", opacity: state.glassOpacity, blur: parseInt(e.target.value, 10) })}
+                  style={{ width: 44, height: 4, cursor: 'pointer' }}
+                />
+              </div>
+
               <button
                 type="button"
                 className="toolbar-button toolbar-button--icon"
@@ -331,6 +356,7 @@ export function LeftPanelWindowApp() {
 
   usePanelWindow("left_panel");
   usePanelHotkeys();
+  useOverlayGlassEffect();
 
   return (
     <PanelWindowLayout
@@ -394,6 +420,7 @@ export function RightPanelWindowApp() {
 
   usePanelWindow("right_panel");
   usePanelHotkeys();
+  useOverlayGlassEffect();
 
   return (
     <PanelWindowLayout
@@ -511,6 +538,7 @@ export function KnownRolesWindowApp() {
 
   usePanelWindow("known_roles");
   usePanelHotkeys();
+  useOverlayGlassEffect();
 
   return (
     <PanelWindowLayout
@@ -556,6 +584,7 @@ export function VisitMapWindowApp() {
 
   usePanelWindow("visit_map");
   usePanelHotkeys();
+  useOverlayGlassEffect();
 
   return (
     <PanelWindowLayout
@@ -879,7 +908,7 @@ function PlayerTable(props: {
             <span className="class-count__dot is-innocent" aria-hidden="true" />
             <span className="class-count__value">{classCounts.innocent}</span>
           </div>
-          <div className="class-count" title={`Killer: ${classCounts.killer}`}>
+          <div className="class-count" title={`Imposter: ${classCounts.killer}`}>
             <span className="class-count__dot is-killer" aria-hidden="true" />
             <span className="class-count__value">{classCounts.killer}</span>
           </div>
@@ -904,8 +933,12 @@ function PlayerTable(props: {
         <span>Player</span>
         <span>Role</span>
         <span>Class</span>
-        <span>Susp</span>
-        <span>Dead</span>
+        <span title="Suspicious" style={{ display: 'flex', justifyContent: 'center' }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </span>
+        <span title="Alive / Dead" style={{ display: 'flex', justifyContent: 'center' }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        </span>
         <span aria-hidden="true" />
       </div>
 
@@ -1097,7 +1130,7 @@ function KnownRolesPanel(props: {
     { value: "all", label: "All" },
     ...PLAYER_CLASS_OPTIONS.map((value) => ({
       value,
-      label: value,
+      label: formatPlayerClassLabel(value) ?? value,
       toneClass: getClassToneClass(value)
     }))
   ] as const;
@@ -1143,7 +1176,11 @@ function KnownRolesPanel(props: {
                 <div className="known-role-row known-role-row--minimal known-role-group__header">
                   <span className="known-role-row__icon">
                     {entry.type === "role" && role?.imageSrc ? (
-                      <img src={role.imageSrc} alt="" />
+                      <img
+                        className={entry.classId ? getClassToneClass(entry.classId) : ""}
+                        src={role.imageSrc}
+                        alt=""
+                      />
                     ) : entry.classId ? (
                       <span
                         className={`known-role-row__class-glyph ${getClassToneClass(
@@ -1899,7 +1936,7 @@ function PlayerDetailPanel(props: {
 
         <div className="summary-actions-row">
           <div className="summary-action-item">
-            <span className="summary-label">Susp</span>
+            <span className="summary-label">Suspicious</span>
             <SuspicionToggle
               active={selectedPlayer.suspicious}
               onToggle={() => {
@@ -1912,7 +1949,7 @@ function PlayerDetailPanel(props: {
           </div>
 
           <div className="summary-action-item">
-            <span className="summary-label">Dead</span>
+            <span className="summary-label">Alive / Dead</span>
             <AliveToggle
               alive={selectedPlayer.isAlive}
               onToggle={() => {
@@ -2282,7 +2319,7 @@ export function UsedAbilityEditor(props: {
           {draft.roleType === "Police" ? (
             <>
               <AbilityPlayerValuePicker
-                label="Target visited"
+                label="Target player"
                 players={selectablePlayers}
                 value={draft.targetPlayerId}
                 allowUnknown
@@ -2425,7 +2462,7 @@ export function UsedAbilityEditor(props: {
 
           {draft.roleType === "Provoker" ? (
             <AbilityPlayerValuePicker
-              label="Target visited"
+              label="Target player"
               players={selectablePlayers}
               value={draft.targetPlayerId}
               allowUnknown
@@ -3004,6 +3041,7 @@ function ClassPicker(props: {
   const forcedClass = getForcedClassForRole(effectiveRoleId);
   const classLockedByRole = isClassLockedByRole(effectiveRoleId);
   const currentClass = forcedClass ?? player.assignedClass;
+  const currentClassLabel = formatPlayerClassLabel(currentClass);
   const { menuStyle, openUpward } = useFloatingPicker(
     rootRef,
     open,
@@ -3036,9 +3074,9 @@ function ClassPicker(props: {
         disabled={classLockedByRole}
         title={
           symbolOnly
-            ? currentClass ?? "Unknown"
+            ? currentClassLabel ?? "Unknown"
             : classLockedByRole
-              ? `Forced by role: ${currentClass ?? "Unknown"}`
+              ? `Forced by role: ${currentClassLabel ?? "Unknown"}`
               : undefined
         }
         onClick={() => {
@@ -3063,7 +3101,7 @@ function ClassPicker(props: {
               "?"
             )
           ) : (
-            currentClass ?? "?"
+            currentClassLabel ?? "?"
           )}
         </span>
         {classLockedByRole && !symbolOnly ? (
@@ -3108,7 +3146,7 @@ function ClassPicker(props: {
                     setOpen(false);
                   }}
                 >
-                  {playerClass}
+                  {formatPlayerClassLabel(playerClass) ?? playerClass}
                 </button>
               ))}
             </div>
@@ -3141,7 +3179,10 @@ export function RoleDropdown(props: {
   const primaryRoleOption = getRoleById(primaryRole, roles);
   const hasMadRole = roles.some((role) => role.id === MAD_ROLE_ID);
   const canPickSecondary = primaryRole === MAD_ROLE_ID && hasMadRole;
-  const pretendingRoles = roles.filter((role) => role.id !== MAD_ROLE_ID);
+  const pretendingRoles = roles.filter(
+    (role) =>
+      role.id !== MAD_ROLE_ID && getAllowedClassesForRole(role.id).includes("Innocent")
+  );
   useClosePickerOnWindowBlur(open, () => setOpen(false));
 
   return (
@@ -3164,7 +3205,7 @@ export function RoleDropdown(props: {
         <span className="role-trigger__icon">
           {primaryRoleOption ? (
             <img
-              className="role-trigger__image"
+              className={`role-trigger__image ${getClassToneClass(getForcedClassForRole(primaryRole) ?? "Neutral")}`}
               src={primaryRoleOption.imageSrc}
               alt=""
             />
@@ -3290,7 +3331,7 @@ export function SingleRoleDropdown(props: {
         <span className="role-trigger__icon">
           {selectedRoleOption ? (
             <img
-              className="role-trigger__image"
+              className={`role-trigger__image ${getClassToneClass(getForcedClassForRole(value) ?? "Neutral")}`}
               src={selectedRoleOption.imageSrc}
               alt=""
             />
@@ -3383,7 +3424,11 @@ function RoleSelectionSection(props: {
               onClick={() => onPick(role.id)}
               title={role.id}
             >
-              <img className="role-option__image" src={role.imageSrc} alt="" />
+              <img
+                className={`role-option__image ${getClassToneClass(getForcedClassForRole(role.id) ?? "Neutral")}`}
+                src={role.imageSrc}
+                alt=""
+              />
               <span className="role-option__name">{role.id}</span>
             </button>
           ))}
@@ -3713,9 +3758,9 @@ function VisitMapEndpoint(props: {
 
   if (roleId || playerId) {
     const role = getRoleById(roleId, roles);
+    const roleClass = getForcedClassForRole(roleId);
 
-    return (
-      <span
+    return (      <span
         className={`visit-map__endpoint ${
           roleId ? "visit-map__endpoint--role" : "visit-map__endpoint--player"
         }${
@@ -3727,7 +3772,11 @@ function VisitMapEndpoint(props: {
         {roleId ? (
           <span className="visit-map__endpoint-icon">
             {role?.imageSrc ? (
-              <img src={role.imageSrc} alt="" />
+              <img
+                className={roleClass ? getClassToneClass(roleClass) : ""}
+                src={role.imageSrc}
+                alt=""
+              />
             ) : (
               <span className="visit-map__endpoint-fallback">?</span>
             )}
@@ -4585,6 +4634,15 @@ async function syncPanelBounds(panel: PanelWindowKey) {
   });
 }
 
+function useOverlayGlassEffect() {
+  const { glassOpacity, glassBlur } = useOverlayState();
+
+  useEffect(() => {
+    document.documentElement.style.setProperty("--glass-opacity", glassOpacity.toString());
+    document.documentElement.style.setProperty("--glass-blur", `${glassBlur}px`);
+  }, [glassOpacity, glassBlur]);
+}
+
 async function applyDefaultPanelPosition(panel: PanelWindowKey) {
   const overlayState = getOverlayState();
   const panelState = getOverlayState().panels[panel];
@@ -4951,7 +5009,7 @@ function getRoleInPlayGroupToneClass(
 }
 
 function getRoleInPlayGroupLabel(entry: RoleInPlay) {
-  return entry.roleId ?? entry.classId ?? "?";
+  return entry.roleId ?? formatPlayerClassLabel(entry.classId) ?? "?";
 }
 
 function getRoleInstanceLead(instance: RoleInstance, players: Player[]) {

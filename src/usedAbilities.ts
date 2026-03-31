@@ -12,6 +12,8 @@ import {
   type UsedAbilityLog,
   type UsedAbilityRoleType
 } from "./types";
+import { formatPlayerClassLabel } from "./playerClass";
+import { normalizeRoleId } from "./roles";
 
 export const ABILITY_UNKNOWN_VALUE: UnknownValue = "unknown";
 
@@ -186,6 +188,7 @@ export function sanitizeUsedAbilityLog(entry: UsedAbilityLog): UsedAbilityLog {
     case "Snitch":
       return {
         ...normalizedEntry,
+        revealedRole: normalizeRoleId(normalizedEntry.revealedRole) ?? ABILITY_UNKNOWN_VALUE,
         revealedClass: normalizedEntry.revealedClass ?? ABILITY_UNKNOWN_VALUE
       };
     default:
@@ -349,11 +352,11 @@ export function formatAbilityPlayerReference(
 }
 
 export function formatAbilityRoleReference(value: AbilityRoleReference) {
-  return !value || value === ABILITY_UNKNOWN_VALUE ? "?" : value;
+  return !value || value === ABILITY_UNKNOWN_VALUE ? "?" : normalizeRoleId(value) ?? value;
 }
 
 export function formatObservedClass(value: ObservedPlayerClass) {
-  return !value || value === ABILITY_UNKNOWN_VALUE ? "?" : value;
+  return !value || value === ABILITY_UNKNOWN_VALUE ? "?" : formatPlayerClassLabel(value) ?? value;
 }
 
 export function getDoctorReviveLabel(value: DoctorReviveResult) {
@@ -403,7 +406,7 @@ function sanitizeInvestigatorResult(
   value?: Partial<InvestigatorPossibleResult>
 ): InvestigatorPossibleResult {
   return {
-    role: value?.role ?? ABILITY_UNKNOWN_VALUE,
+    role: normalizeRoleId(value?.role) ?? ABILITY_UNKNOWN_VALUE,
     class: value?.class ?? ABILITY_UNKNOWN_VALUE
   };
 }

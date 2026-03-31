@@ -9,6 +9,7 @@ import {
 } from "react";
 import { actionOptions, createMockMatch } from "./mockData";
 import { MAD_ROLE_ID, getRoleById } from "./roles";
+import { getAllowedClassesForRole, getForcedClassForRole } from "./playerClass";
 import {
   type Claim,
   type FakeClaim,
@@ -1047,7 +1048,10 @@ function RoleDropdown(props: {
   const primaryRoleOption = getRoleById(primaryRole, roles);
   const hasMadRole = roles.some((role) => role.id === MAD_ROLE_ID);
   const canPickSecondary = primaryRole === MAD_ROLE_ID && hasMadRole;
-  const pretendingRoles = roles.filter((role) => role.id !== MAD_ROLE_ID);
+  const pretendingRoles = roles.filter(
+    (role) =>
+      role.id !== MAD_ROLE_ID && getAllowedClassesForRole(role.id).includes("Innocent")
+  );
 
   useEffect(() => {
     if (!open) {
@@ -1128,7 +1132,7 @@ function RoleDropdown(props: {
         <span className="role-trigger__icon">
           {primaryRoleOption ? (
             <img
-              className="role-trigger__image"
+              className={`role-trigger__image ${getForcedClassForRole(primaryRole) === "Innocent" ? "is-innocent" : getForcedClassForRole(primaryRole) === "Killer" ? "is-killer" : "is-neutral"}`}
               src={primaryRoleOption.imageSrc}
               alt=""
             />
@@ -1219,7 +1223,11 @@ function RoleSelectionSection(props: {
               onClick={() => onPick(role.id)}
               title={role.id}
             >
-              <img className="role-option__image" src={role.imageSrc} alt="" />
+              <img
+                className={`role-option__image ${getForcedClassForRole(role.id) === "Innocent" ? "is-innocent" : getForcedClassForRole(role.id) === "Killer" ? "is-killer" : "is-neutral"}`}
+                src={role.imageSrc}
+                alt=""
+              />
               <span className="role-option__name">{role.id}</span>
             </button>
           ))}

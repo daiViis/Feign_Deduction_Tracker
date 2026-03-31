@@ -1,20 +1,22 @@
 :root {
   color-scheme: dark;
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
-  --bg-surface: rgba(20, 25, 32, 0.96);
-  --bg-surface-2: rgba(17, 22, 29, 0.98);
-  --bg-selected: #1d2733;
-  --bg-hover: #1a222d;
-  --border: #26303c;
-  --border-strong: #334152;
-  --text: #e6ebf2;
-  --text-soft: #a8b2c1;
-  --text-muted: #7d8898;
-  --alive: #51a16f;
-  --neutral: #4d8fd6;
-  --dead: #a3565d;
-  --warn: #c8a053;
-  --radius: 2px;
+  --glass-opacity: 0.45;
+  --glass-blur: 16px;
+  --bg-surface: rgba(15, 20, 28, var(--glass-opacity));
+  --bg-surface-2: rgba(12, 16, 22, calc(var(--glass-opacity) - 0.05));
+  --bg-selected: rgba(59, 130, 246, 0.15);
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --text: #f8fafc;
+  --text-soft: #cbd5e1;
+  --text-muted: #94a3b8;
+  --alive: #22c55e;
+  --neutral: #3b82f6;
+  --dead: #ef4444;
+  --warn: #f59e0b;
+  --radius: 10px;
 }
 
 * {
@@ -126,9 +128,10 @@ button:focus-visible {
   padding: 0 6px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #10151c;
+  background: rgba(16, 21, 28, 0.4);
   color: var(--text-soft);
   white-space: nowrap;
+  transition: all 0.2s ease;
 }
 
 .toolbar-button--icon {
@@ -179,7 +182,11 @@ button:focus-visible {
   height: 100%;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: rgba(18, 23, 30, 0.98);
+  background: var(--bg-surface);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
 }
 
 .panel-window.is-collapsed {
@@ -187,16 +194,17 @@ button:focus-visible {
 }
 
 .panel-window.is-solid-background {
-  background: #12171e; /* Pure solid background */
+  background: #0d1218; /* Deep rich solid background */
+  backdrop-filter: none;
 }
 
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  min-height: 24px;
-  padding: 0 5px;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 8px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-surface-2);
   cursor: grab;
@@ -204,8 +212,8 @@ button:focus-visible {
 }
 
 .panel-header.is-collapsed {
-  min-height: 22px;
-  padding: 0 4px;
+  min-height: 24px;
+  padding: 0 6px;
   border-bottom: 0;
 }
 
@@ -215,7 +223,10 @@ button:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
 }
 
 .panel-header__actions {
@@ -390,13 +401,14 @@ button:focus-visible {
   position: sticky;
   top: 0;
   z-index: 2;
-  min-height: 20px;
-  padding: 0 5px;
+  min-height: 24px;
+  padding: 0 8px;
   border-bottom: 1px solid var(--border);
-  background: #0f141b;
+  background: rgba(17, 22, 29, 0.95);
   color: var(--text-muted);
   font-size: 9px;
-  letter-spacing: 0.07em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -405,21 +417,24 @@ button:focus-visible {
   min-height: 0;
   overflow: auto;
   scrollbar-width: thin;
+  padding: 2px 0;
 }
 
 .table-empty {
-  padding: 8px 6px;
+  padding: 12px 8px;
   color: var(--text-muted);
+  text-align: center;
+  font-style: italic;
 }
 
 .known-roles-panel {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 8px;
   width: 100%;
   height: 100%;
   min-height: 0;
-  padding: 4px;
+  padding: 8px;
   overflow: auto;
   scrollbar-width: thin;
 }
@@ -427,32 +442,38 @@ button:focus-visible {
 .known-roles-section {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding-top: 1px;
+  gap: 6px;
 }
 
 .section-heading {
   color: var(--text-muted);
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  margin-bottom: 2px;
 }
 
 .known-roles-list {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .known-role-row {
   display: flex;
-  align-items: flex-start;
-  min-height: 30px;
-  padding: 4px;
-  border: 1px solid rgba(38, 48, 60, 0.7);
+  align-items: center;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: rgba(16, 21, 28, 0.88);
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.2s ease;
+}
+
+.known-role-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border-strong);
 }
 
 .known-role-row__main {
@@ -562,11 +583,15 @@ button:focus-visible {
 }
 
 .player-row {
-  min-height: 28px;
-  padding: 0 5px;
-  border-bottom: 1px solid rgba(38, 48, 60, 0.55);
+  display: grid;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   background: transparent;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .player-row:hover {
@@ -574,27 +599,38 @@ button:focus-visible {
 }
 
 .player-row:focus-visible {
+  outline: none;
   background: var(--bg-selected);
   box-shadow:
-    inset 2px 0 0 rgba(81, 161, 111, 0.9),
+    inset 3px 0 0 var(--neutral),
     inset 0 0 0 1px var(--border-strong);
 }
 
 .player-row.is-selected {
   background: var(--bg-selected);
-  box-shadow: inset 2px 0 0 rgba(81, 161, 111, 0.9);
+  box-shadow: inset 3px 0 0 var(--neutral);
 }
 
 .player-row--add:hover {
-  background: rgba(81, 161, 111, 0.08);
+  background: rgba(34, 197, 150, 0.08);
+}
+
+@keyframes deadRowFade {
+  0% { opacity: 1; filter: grayscale(0); transform: scale(1); }
+  100% { opacity: 0.6; filter: grayscale(0.8); transform: scale(0.98); }
 }
 
 .player-row.is-dead {
-  color: var(--text-soft);
+  animation: deadRowFade 0.4s ease-out forwards;
+}
+
+.player-row.is-dead .player-name {
+  text-decoration: line-through;
+  text-decoration-color: var(--dead);
 }
 
 .player-row.is-compact {
-  min-height: 26px;
+  min-height: 28px;
 }
 
 .player-cell {
@@ -606,14 +642,14 @@ button:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
 .player-cell__primary {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -636,6 +672,7 @@ button:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 600;
+  font-size: 13px;
 }
 
 .player-name-editor {
@@ -1895,10 +1932,13 @@ button:focus-visible {
 
 .panel-window,
 .controller-bar {
-  border-color: rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+  border-color: var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .panel-header,
@@ -1906,17 +1946,13 @@ button:focus-visible {
 .table-header,
 .detail-section,
 .role-dropdown__panel-header {
-  border-color: rgba(255, 255, 255, 0.06);
-}
-
-.panel-window {
-  background: rgba(10, 13, 17, 0.94);
+  border-color: rgba(255, 255, 255, 0.04);
 }
 
 .panel-header {
-  min-height: 28px;
+  min-height: 26px;
   padding: 0 8px;
-  background: rgba(14, 18, 24, 0.94);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .panel-header__title {
@@ -2460,40 +2496,45 @@ button:focus-visible {
 .known-role-instance__badge {
   display: inline-flex;
   align-items: center;
-  min-height: 16px;
-  padding: 0 5px;
+  min-height: 18px;
+  padding: 0 6px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 6px;
   font-size: 9px;
+  font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .known-role-instance__badge--confirmed {
-  border-color: rgba(81, 161, 111, 0.4);
-  background: rgba(81, 161, 111, 0.16);
-  color: #d4efdd;
+  border-color: rgba(34, 197, 150, 0.4);
+  background: rgba(34, 197, 150, 0.16);
+  color: #86efac;
 }
 
 .known-role-instance__badge--possible {
-  border-color: rgba(77, 143, 214, 0.34);
-  background: rgba(77, 143, 214, 0.1);
-  color: #d7e7fb;
+  border-color: rgba(59, 130, 246, 0.4);
+  background: rgba(59, 130, 246, 0.1);
+  color: #93c5fd;
 }
 
 .known-role-instance__badge--assigned {
-  color: var(--text-soft);
+  border-color: rgba(34, 197, 150, 0.4);
+  background: rgba(34, 197, 150, 0.1);
+  color: #86efac;
 }
 
 .known-role-instance__badge--unclaimed {
-  color: var(--text-muted);
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.1);
+  color: #fcd34d;
 }
 
 .known-role-instance__badge--conflict {
-  border-color: rgba(230, 150, 84, 0.45);
-  background: rgba(230, 150, 84, 0.14);
-  color: #f4d8b9;
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
 }
 
 .known-role-instance__confirm-group {
@@ -2829,3 +2870,24 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+ / *   G l o w   e f f e c t s   f o r   r o l e   i c o n s   * / 
+ . r o l e - t r i g g e r _ _ i m a g e . i s - i n n o c e n t , 
+ . r o l e - o p t i o n _ _ i m a g e . i s - i n n o c e n t , 
+ . k n o w n - r o l e - r o w _ _ i c o n . i s - i n n o c e n t   i m g   { 
+     f i l t e r :   d r o p - s h a d o w ( 0   0   5 p x   r g b a ( 3 4 ,   1 9 7 ,   9 4 ,   0 . 7 ) ) ; 
+ } 
+ 
+ . r o l e - t r i g g e r _ _ i m a g e . i s - k i l l e r , 
+ . r o l e - o p t i o n _ _ i m a g e . i s - k i l l e r , 
+ . k n o w n - r o l e - r o w _ _ i c o n . i s - k i l l e r   i m g   { 
+     f i l t e r :   d r o p - s h a d o w ( 0   0   5 p x   r g b a ( 2 3 9 ,   6 8 ,   6 8 ,   0 . 7 ) ) ; 
+ } 
+ 
+ . r o l e - t r i g g e r _ _ i m a g e . i s - n e u t r a l , 
+ . r o l e - o p t i o n _ _ i m a g e . i s - n e u t r a l , 
+ . k n o w n - r o l e - r o w _ _ i c o n . i s - n e u t r a l   i m g   { 
+     f i l t e r :   d r o p - s h a d o w ( 0   0   5 p x   r g b a ( 5 9 ,   1 3 0 ,   2 4 6 ,   0 . 7 ) ) ; 
+ } 
+  
+ 

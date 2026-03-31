@@ -15,6 +15,7 @@ import {
   setUsedAbilityIgnored,
   updateUsedAbilityLog
 } from "./usedAbilities";
+import { getRoleIdFromVisitReference, toRoleReference } from "./visitEvidence";
 import {
   type FakeClaim,
   type Claim,
@@ -29,7 +30,7 @@ import {
   type UsedAbilityDraft,
   type UsedAbilityLog
 } from "./types";
-import { MAD_ROLE_ID } from "./roles";
+import { MAD_ROLE_ID, normalizeRoleId } from "./roles";
 
 export type PanelWindowKey =
   | "left_panel"
@@ -53,10 +54,13 @@ export type OverlayState = {
   timelineViewMode: TimelineViewMode;
   compactMode: boolean;
   panels: Record<PanelWindowKey, PanelPreference>;
+  glassOpacity: number;
+  glassBlur: number;
 };
 
 export type OverlayAction =
   | { type: "resetMatch" }
+  | { type: "setGlassSettings"; opacity: number; blur: number }
   | { type: "setPhase"; phase: Phase }
   | { type: "nextPhase" }
   | { type: "toggleCompactMode" }
@@ -236,11 +240,13 @@ function createInitialState(): OverlayState {
         visible: true,
         collapsed: false,
         expandedWidth: 340,
-        expandedHeight: 320
+        expandedHeight: 420
       }
-    }
-  };
-}
+      },
+      glassOpacity: 0.45,
+      glassBlur: 16
+      };
+      }
 
 function sanitizeState(state?: OverlayState) {
   const initialState = createInitialState();
@@ -252,6 +258,8 @@ function sanitizeState(state?: OverlayState) {
     ...(state.match ?? initialState.match),
     round: Math.max(1, state.match?.round ?? initialState.match.round),
     phase: "night" as const,
+    actions: sanitizeActions(state.match?.actions ?? initialState.match.actions),
+    claims: sanitizeClaims(state.match?.claims ?? initialState.match.claims),
     usedAbilities: state.match?.usedAbilities ?? initialState.match.usedAbilities,
     roles: initialState.match.roles,
     tags: initialState.match.tags
@@ -308,7 +316,9 @@ function sanitizeState(state?: OverlayState) {
         ...initialState.panels.visit_map,
         ...state.panels?.visit_map
       }
-    }
+    },
+    glassOpacity: typeof state.glassOpacity === "number" ? state.glassOpacity : 0.45,
+    glassBlur: typeof state.glassBlur === "number" ? state.glassBlur : 16
   };
 
   if (nextState.panels.left_panel.expandedWidth === 520) {
@@ -361,6 +371,13 @@ function deriveTimelineAwareState(previousState: OverlayState, nextState: Overla
 
 function reducer(state: OverlayState, action: OverlayAction): OverlayState {
   switch (action.type) {
+    case "setGlassSettings":
+      return {
+        ...state,
+        glassOpacity: action.opacity,
+        glassBlur: action.blur
+      };
+
     case "resetMatch": {
       const nextMatch = resetCurrentMatch(state.match);
       return {
@@ -1260,10 +1277,15 @@ function sanitizePlayer(
   actions: NightAction[],
   usedAbilities: UsedAbilityLog[]
 ) {
-  const effectiveRoleId = getClassRoleId(player.primaryRole, player.secondaryRole);
+  const primaryRole = normalizeRoleId(player.primaryRole);
+  const secondaryRole =
+    primaryRole === MAD_ROLE_ID ? normalizeRoleId(player.secondaryRole) : undefined;
+  const effectiveRoleId = getClassRoleId(primaryRole, secondaryRole);
 
   return {
     ...player,
+    primaryRole,
+    secondaryRole,
     actionIds: actions
       .filter((action) => action.actorId === player.id)
       .map((action) => action.id),
@@ -1275,6 +1297,19 @@ function sanitizePlayer(
       player.assignedClass ?? null
     )
   };
+}
+
+function normalizeActionParticipantId(value?: string) {
+  if (!value) {
+    return value;
+  }
+
+  const roleId = getRoleIdFromVisitReference(value);
+  if (!roleId) {
+    return value;
+  }
+
+  return toRoleReference(roleId);
 }
 
 function getStoredIgnoreActionsForPlayer(
@@ -1363,6 +1398,21 @@ function sanitizeFakeClaims(fakeClaims?: Record<string, FakeClaim>) {
   );
 }
 
+function sanitizeClaims(claims?: Claim[]) {
+  return (claims ?? []).map((claim) => ({
+    ...claim,
+    roleId: normalizeRoleId(claim.roleId)
+  }));
+}
+
+function sanitizeActions(actions?: NightAction[]) {
+  return (actions ?? []).map((action) => ({
+    ...action,
+    actorId: normalizeActionParticipantId(action.actorId) ?? action.actorId,
+    targetId: normalizeActionParticipantId(action.targetId)
+  }));
+}
+
 function sanitizeRoleEvidenceOverrides(
   overrides?: MatchSeed["roleEvidenceOverrides"]
 ): MatchSeed["roleEvidenceOverrides"] {
@@ -1385,7 +1435,7 @@ function sanitizeRoleEvidenceOverrides(
 
 function sanitizeFakeClaim(claim?: FakeClaim): FakeClaim {
   return {
-    roleId: claim?.roleId,
+    roleId: normalizeRoleId(claim?.roleId),
     notes: claim?.notes ?? "",
     entries: (claim?.entries ?? [])
       .filter(

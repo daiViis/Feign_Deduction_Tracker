@@ -1,6 +1,7 @@
 import {
   ABILITY_UNKNOWN_VALUE
 } from "./usedAbilities";
+import { normalizeRoleId } from "./roles";
 import {
   type NightAction,
   type Player,
@@ -80,11 +81,11 @@ export function getRoleIdFromVisitReference(value?: string | null) {
   }
 
   const roleId = value.slice(ROLE_REFERENCE_PREFIX.length);
-  return roleId || undefined;
+  return normalizeRoleId(roleId);
 }
 
 export function toRoleReference(roleId: string) {
-  return `${ROLE_REFERENCE_PREFIX}${roleId}`;
+  return `${ROLE_REFERENCE_PREFIX}${normalizeRoleId(roleId) ?? roleId}`;
 }
 
 export function isPlayerBasedVisitEvidence(entry: VisitEvidence) {
@@ -434,6 +435,10 @@ function createVisitEvidenceFromUsedAbility(
   entry: UsedAbilityLog,
   players: Player[]
 ) {
+  if (!doesUsedAbilityCreateVisitEvidence(entry.roleType)) {
+    return undefined;
+  }
+
   const targetReference = getUsedAbilityVisitTarget(entry);
   const targetPlayerId =
     targetReference && !isSpecialReference(targetReference) ? targetReference : null;
@@ -465,11 +470,9 @@ function createVisitEvidenceFromUsedAbility(
 function getUsedAbilityVisitTarget(entry: UsedAbilityLog) {
   switch (entry.roleType) {
     case "Doctor":
-    case "Police":
     case "Lookout":
     case "Investigator":
     case "Snitch":
-    case "Provoker":
       return entry.targetPlayerId;
     case "Trapper":
       return entry.trapTargetPlayerId;
@@ -477,6 +480,20 @@ function getUsedAbilityVisitTarget(entry: UsedAbilityLog) {
       return entry.trackedPlayerId;
     default:
       return undefined;
+  }
+}
+
+function doesUsedAbilityCreateVisitEvidence(roleType: UsedAbilityLog["roleType"]) {
+  switch (roleType) {
+    case "Doctor":
+    case "Lookout":
+    case "Investigator":
+    case "Trapper":
+    case "Snitch":
+    case "Tracker":
+      return true;
+    default:
+      return false;
   }
 }
 
